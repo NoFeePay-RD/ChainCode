@@ -60,6 +60,33 @@ install_chaincode() {
     peer lifecycle chaincode install ${filename}.tar.gz
 }
 
+
+approve_chaincode() {
+    validate_running_directory
+    validate_user_variables "FABRIC_CFG_PATH" "CORE_PEER_TLS_ENABLED" "CORE_PEER_TLS_ROOTCERT_FILE" "CORE_PEER_MSPCONFIGPATH" "CORE_PEER_ADDRESS" "CORE_PEER_LOCALMSPID" "CORE_ORDERER_ADDRESS" "CORE_ORDERER_TLS_ROOTCERT_FILE" 
+    validate_binary "peer"
+
+    # Get the package ID of the installed chaincode
+    package_id=$(peer lifecycle chaincode queryinstalled | grep $NOFEEPAY_CC_NAME | tail -1 | awk -F ', ' '{print $1}' | awk -F ':' '{print $2}')
+
+    if [ -z "$package_id" ]; then
+        echo "Error: Chaincode package ID not found. Please ensure the chaincode is installed."
+        exit 1
+    fi
+
+    peer lifecycle chaincode approveformyorg -o $CORE_ORDERER_ADDRESS \
+        --channelID $NOFEEPAY_CHANNEL_ID \
+        --name ${NOFEEPAY_CC_NAME} \
+        --version 1.0 \
+        --package-id $package_id \
+        --sequence 1 \
+        --tls \
+        --cafile $CORE_ORDERER_TLS_ROOTCERT_FILE
+
+    echo "Chaincode approved for organization $(echo $CORE_PEER_LOCALMSPID)"
+}
+
+
 show_help() {
     cat << EOF
 Usage: ./$(basename "$0") <command>
@@ -69,6 +96,7 @@ A CLI utility to manage the chaincode lifecycle for the NoFeePay
 Commands:
   package   Package the chaincode into a .tar.gz file
   install   Install the chaincode on the organization's peer
+  approve   Approve the chaincode for the organization
   help      Display this help message
 EOF
 }
@@ -95,6 +123,9 @@ case "$command" in
         ;;
     install)
         install_chaincode
+        ;;
+    approve)
+        approve_chaincode
         ;;
     *)
         echo "Error: Unknown command '$command'"
