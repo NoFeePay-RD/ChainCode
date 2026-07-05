@@ -67,7 +67,7 @@ approve_chaincode() {
     validate_binary "peer"
 
     # Get the package ID of the installed chaincode
-    package_id=$(peer lifecycle chaincode queryinstalled | grep $NOFEEPAY_CC_NAME | tail -1 | awk -F ', ' '{print $1}' | awk -F ':' '{print $2}')
+    package_id=$(peer lifecycle chaincode queryinstalled | tail -1 | grep "Label: $NOFEEPAY_CC_NAME" | sed -E 's/Package ID: ([^,]+),.*/\1/')
 
     if [ -z "$package_id" ]; then
         echo "Error: Chaincode package ID not found. Please ensure the chaincode is installed."
