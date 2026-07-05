@@ -40,7 +40,7 @@ validate_binary() {
 package_chaincode() {
     validate_running_directory
     validate_user_variables "FABRIC_CFG_PATH"
-    validate_peer_binary "peer"
+    validate_binary "peer"
 
     peer lifecycle chaincode package "${NOFEEPAY_CC_NAME}.tar.gz" \
         --path . \
@@ -51,6 +51,15 @@ package_chaincode() {
 }
 
 
+install_chaincode() {
+    validate_running_directory
+    validate_user_variables "FABRIC_CFG_PATH" "CORE_PEER_TLS_ENABLED" "CORE_PEER_TLS_ROOTCERT_FILE" "CORE_PEER_MSPCONFIGPATH" "CORE_PEER_ADDRESS" "CORE_PEER_LOCALMSPID"
+    validate_binary "peer"
+
+    filename=$NOFEEPAY_CC_NAME
+    peer lifecycle chaincode install ${filename}.tar.gz
+}
+
 show_help() {
     cat << EOF
 Usage: ./$(basename "$0") <command>
@@ -59,6 +68,7 @@ A CLI utility to manage the chaincode lifecycle for the NoFeePay
 
 Commands:
   package   Package the chaincode into a .tar.gz file
+  install   Install the chaincode on the organization's peer
   help      Display this help message
 EOF
 }
@@ -82,6 +92,9 @@ case "$command" in
         ;;
     help|-h|--help)
         show_help
+        ;;
+    install)
+        install_chaincode
         ;;
     *)
         echo "Error: Unknown command '$command'"
