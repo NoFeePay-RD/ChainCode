@@ -66,13 +66,8 @@ approve_chaincode() {
     validate_user_variables "FABRIC_CFG_PATH" "CORE_PEER_TLS_ENABLED" "CORE_PEER_TLS_ROOTCERT_FILE" "CORE_PEER_MSPCONFIGPATH" "CORE_PEER_ADDRESS" "CORE_PEER_LOCALMSPID" "CORE_ORDERER_ADDRESS" "CORE_ORDERER_TLS_ROOTCERT_FILE" 
     validate_binary "peer"
 
-    # Get the package ID of the installed chaincode
-    package_id=$(peer lifecycle chaincode queryinstalled | tail -1 | grep "Label: $NOFEEPAY_CC_NAME" | sed -E 's/Package ID: ([^,]+),.*/\1/')
-
-    if [ -z "$package_id" ]; then
-        echo "Error: Chaincode package ID not found. Please ensure the chaincode is installed."
-        exit 1
-    fi
+    # Get the package ID of the generated package
+    package_id=$(peer lifecycle chaincode calculatepackageid ${NOFEEPAY_CC_NAME}.tar.gz)
 
     peer lifecycle chaincode approveformyorg -o $CORE_ORDERER_ADDRESS \
         --channelID $NOFEEPAY_CHANNEL_ID \
