@@ -13,8 +13,9 @@ type SmartContract struct {
 }
 
 type FundDepositEntry struct {
-	Amount   float64 `json:"amount"`
-	Currency string  `json:"currency"`
+	Amount    float64 `json:"amount"`
+	Currency  string  `json:"currency"`
+	Timestamp int64   `json:"timestamp"`
 }
 
 type FundDepositResponse struct {
@@ -22,6 +23,7 @@ type FundDepositResponse struct {
 	CustomerAddress string  `json:"customerAddress"`
 	Currency        string  `json:"currency"`
 	TransactionID   string  `json:"transactionID"`
+	Timestamp       int64   `json:"timestamp"`
 }
 
 func (s *SmartContract) DepositFunds(ctx contractapi.TransactionContextInterface, customerAddress string, amount float64, currency string) error {
@@ -29,11 +31,18 @@ func (s *SmartContract) DepositFunds(ctx contractapi.TransactionContextInterface
 		return fmt.Errorf("deposit amount must be greater than zero")
 	}
 
+	//Same timestamp is retreived for both endosement and commit. So it keeps the deterministic nature of the transaction
+	timestamp, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("failed to get transaction timestamp: %v", err)
+	}
+
 	txID := ctx.GetStub().GetTxID()
 
 	fundDeposit := FundDepositEntry{
-		Amount:   amount,
-		Currency: currency,
+		Amount:    amount,
+		Currency:  currency,
+		Timestamp: timestamp.AsTime().UnixMicro(),
 	}
 
 	fundDepositJSON, err := json.Marshal(fundDeposit)
@@ -84,6 +93,7 @@ func (s *SmartContract) GetAllCustomerFunds(ctx contractapi.TransactionContextIn
 		fundDepositResponse.Currency = fund.Currency
 		fundDepositResponse.CustomerAddress = attributes[0]
 		fundDepositResponse.TransactionID = attributes[1]
+		fundDepositResponse.Timestamp = fund.Timestamp
 		results = append(results, fundDepositResponse)
 	}
 
@@ -91,10 +101,9 @@ func (s *SmartContract) GetAllCustomerFunds(ctx contractapi.TransactionContextIn
 }
 
 type FundTransferEntry struct {
-	Amount          float64 `json:"amount"`
-	Currency        string  `json:"currency"`
-	CustomerAddress string  `json:"customerAddress"`
-	MerchantAddress string  `json:"merchantAddress"`
+	Amount    float64 `json:"amount"`
+	Currency  string  `json:"currency"`
+	Timestamp int64   `json:"timestamp"`
 }
 
 type FundTransferResponse struct {
@@ -102,6 +111,7 @@ type FundTransferResponse struct {
 	Currency        string  `json:"currency"`
 	CustomerAddress string  `json:"customerAddress"`
 	MerchantAddress string  `json:"merchantAddress"`
+	Timestamp       int64   `json:"timestamp"`
 	TransactionID   string  `json:"transactionID"`
 }
 
@@ -128,13 +138,18 @@ func (s *SmartContract) TransferFunds(ctx contractapi.TransactionContextInterfac
 		return fmt.Errorf("insufficient funds for transfer: available %.2f, required %.2f", totalFunds, amount)
 	}
 
+	//Same timestamp is retreived for both endosement and commit. So it keeps the deterministic nature of the transaction
+	timestamp, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("failed to get transaction timestamp: %v", err)
+	}
+
 	txID := ctx.GetStub().GetTxID()
 
 	fundTransfer := FundTransferEntry{
-		Amount:          amount,
-		Currency:        currency,
-		CustomerAddress: customerAddress,
-		MerchantAddress: merchantAddress,
+		Amount:    amount,
+		Currency:  currency,
+		Timestamp: timestamp.AsTime().UnixMicro(),
 	}
 
 	fundTransferJSON, err := json.Marshal(fundTransfer)
@@ -142,8 +157,8 @@ func (s *SmartContract) TransferFunds(ctx contractapi.TransactionContextInterfac
 		return err
 	}
 
-	// Create a unique composite key: T~CustomerAddress~TransactionID
-	compositeKey, err := ctx.GetStub().CreateCompositeKey("T", []string{customerAddress, txID})
+	// Create a unique composite key: T~CustomerAddress~MerchantAddress~TransactionID
+	compositeKey, err := ctx.GetStub().CreateCompositeKey("T", []string{customerAddress, merchantAddress, txID})
 	if err != nil {
 		return fmt.Errorf("failed to create composite key: %v", err)
 	}
@@ -183,8 +198,9 @@ func (s *SmartContract) GetAllCustomerTransfers(ctx contractapi.TransactionConte
 		fundTransferResponse.Amount = transfer.Amount
 		fundTransferResponse.Currency = transfer.Currency
 		fundTransferResponse.CustomerAddress = attributes[0]
-		fundTransferResponse.MerchantAddress = transfer.MerchantAddress
-		fundTransferResponse.TransactionID = attributes[1]
+		fundTransferResponse.MerchantAddress = attributes[1]
+		fundTransferResponse.Timestamp = transfer.Timestamp
+		fundTransferResponse.TransactionID = attributes[2]
 		results = append(results, fundTransferResponse)
 	}
 
