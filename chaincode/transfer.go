@@ -7,7 +7,7 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
 
-func (s *SmartContract) TransferFunds(ctx contractapi.TransactionContextInterface, customerAddress string, amount float64, currency string, merchantAddress string) error {
+func (s *SmartContract) TransferFunds(ctx contractapi.TransactionContextInterface, customerAddress string, amount float64, merchantAddress string) error {
 	if amount <= 0 {
 		return fmt.Errorf("transfer amount must be greater than zero")
 	}
@@ -21,7 +21,7 @@ func (s *SmartContract) TransferFunds(ctx contractapi.TransactionContextInterfac
 
 	var totalFunds float64
 	for _, fund := range customerFunds {
-		if fund.CustomerAddress == customerAddress && fund.Currency == currency {
+		if fund.CustomerAddress == customerAddress {
 			totalFunds += fund.Amount
 		}
 	}
@@ -40,7 +40,6 @@ func (s *SmartContract) TransferFunds(ctx contractapi.TransactionContextInterfac
 
 	fundTransfer := FundTransferEntry{
 		Amount:    amount,
-		Currency:  currency,
 		Timestamp: timestamp.AsTime().UnixMicro(),
 	}
 
@@ -88,7 +87,6 @@ func (s *SmartContract) GetAllCustomerTransfers(ctx contractapi.TransactionConte
 
 		var fundTransferResponse FundTransferResponse
 		fundTransferResponse.Amount = transfer.Amount
-		fundTransferResponse.Currency = transfer.Currency
 		fundTransferResponse.CustomerAddress = attributes[0]
 		fundTransferResponse.MerchantAddress = attributes[1]
 		fundTransferResponse.Timestamp = transfer.Timestamp

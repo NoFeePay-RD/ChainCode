@@ -7,7 +7,7 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
 
-func (s *SmartContract) DepositFunds(ctx contractapi.TransactionContextInterface, customerAddress string, amount float64, currency string) error {
+func (s *SmartContract) DepositFunds(ctx contractapi.TransactionContextInterface, customerAddress string, amount float64) error {
 	if amount <= 0 {
 		return fmt.Errorf("deposit amount must be greater than zero")
 	}
@@ -22,7 +22,6 @@ func (s *SmartContract) DepositFunds(ctx contractapi.TransactionContextInterface
 
 	fundDeposit := FundDepositEntry{
 		Amount:    amount,
-		Currency:  currency,
 		Timestamp: timestamp.AsTime().UnixMicro(),
 	}
 
@@ -71,7 +70,6 @@ func (s *SmartContract) GetAllCustomerFunds(ctx contractapi.TransactionContextIn
 
 		var fundDepositResponse FundDepositResponse
 		fundDepositResponse.Amount = fund.Amount
-		fundDepositResponse.Currency = fund.Currency
 		fundDepositResponse.CustomerAddress = attributes[0]
 		fundDepositResponse.TransactionID = attributes[1]
 		fundDepositResponse.Timestamp = fund.Timestamp
