@@ -48,8 +48,9 @@ func (s *SmartContract) TransferFunds(ctx contractapi.TransactionContextInterfac
 		return err
 	}
 
-	// Create a unique composite key: T~CustomerAddress~MerchantAddress~TransactionID
-	compositeKey, err := ctx.GetStub().CreateCompositeKey("T", []string{customerAddress, merchantAddress, txID})
+	// Create a unique composite key: T~Date~MerchantAddress~CustomerAddress~TransactionID
+	date_txt := timestamp.AsTime().Format("20060102")
+	compositeKey, err := ctx.GetStub().CreateCompositeKey("T", []string{date_txt, merchantAddress, customerAddress, txID})
 	if err != nil {
 		return fmt.Errorf("failed to create composite key: %v", err)
 	}
@@ -87,10 +88,10 @@ func (s *SmartContract) GetAllCustomerTransfers(ctx contractapi.TransactionConte
 
 		var fundTransferResponse FundTransferResponse
 		fundTransferResponse.Amount = transfer.Amount
-		fundTransferResponse.CustomerAddress = attributes[0]
+		fundTransferResponse.CustomerAddress = attributes[2]
 		fundTransferResponse.MerchantAddress = attributes[1]
 		fundTransferResponse.Timestamp = transfer.Timestamp
-		fundTransferResponse.TransactionID = attributes[2]
+		fundTransferResponse.TransactionID = attributes[3]
 		results = append(results, fundTransferResponse)
 	}
 

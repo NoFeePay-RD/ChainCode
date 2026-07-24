@@ -33,3 +33,10 @@ type FundTransferResponse struct {
 	Timestamp       int64   `json:"timestamp"`
 	TransactionID   string  `json:"transactionID"`
 }
+
+type SettlementResponse struct {
+	MerchantAddress  string  `json:"merchantAddress"`
+	TotalAmount      float64 `json:"amount"`
+	TransactionCount int     `json:"transactionCount"`
+	TransactionDate  string  `json:"transactionDate"`
+}
