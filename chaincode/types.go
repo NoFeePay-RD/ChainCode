@@ -45,3 +45,8 @@ type SettlementResponse struct {
 	TransactionCount int     `json:"transactionCount"`
 	TransactionDate  string  `json:"transactionDate"`
 }
+
+type BalanceCheckResponse struct {
+	CustomerAddress string  `json:"customerAddress"`
+	Balance         float64 `json:"balance"`
+}
