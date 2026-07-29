@@ -13,21 +13,13 @@ func (s *SmartContract) TransferFunds(ctx contractapi.TransactionContextInterfac
 	}
 
 	//check if the customer has enough funds to transfer
-	// Get all customer funds
-	customerFunds, err := s.GetAllCustomerDeposits(ctx)
+	var response, err = s.CheckCustomerBalance(ctx, customerAddress)
 	if err != nil {
-		return fmt.Errorf("failed to retrieve customer funds: %v", err)
+		return fmt.Errorf("failed to check customer balance")
 	}
 
-	var totalFunds float64
-	for _, fund := range customerFunds {
-		if fund.CustomerAddress == customerAddress {
-			totalFunds += fund.Amount
-		}
-	}
-
-	if totalFunds < amount {
-		return fmt.Errorf("insufficient funds for transfer: available %.2f, required %.2f", totalFunds, amount)
+	if response.Balance < amount {
+		return fmt.Errorf("insufficient funds for transfer: available %.2f, required %.2f", response.Balance, amount)
 	}
 
 	//Same timestamp is retreived for both endosement and commit. So it keeps the deterministic nature of the transaction
