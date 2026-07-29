@@ -10,8 +10,10 @@ type SmartContract struct {
 }
 
 type FundDepositEntry struct {
-	Amount    float64 `json:"amount"`
-	Timestamp int64   `json:"timestamp"`
+	Amount          float64 `json:"amount"`
+	CustomerAddress string  `json:"customerAddress"`
+	DocType         string  `json:"docType"`
+	Timestamp       int64   `json:"timestamp"`
 }
 
 type FundDepositResponse struct {
@@ -22,8 +24,11 @@ type FundDepositResponse struct {
 }
 
 type FundTransferEntry struct {
-	Amount    float64 `json:"amount"`
-	Timestamp int64   `json:"timestamp"`
+	Amount          float64 `json:"amount"`
+	CustomerAddress string  `json:"customerAddress"`
+	DocType         string  `json:"docType"`
+	MerchantAddress string  `json:"merchantAddress"`
+	Timestamp       int64   `json:"timestamp"`
 }
 
 type FundTransferResponse struct {

@@ -14,7 +14,7 @@ func (s *SmartContract) TransferFunds(ctx contractapi.TransactionContextInterfac
 
 	//check if the customer has enough funds to transfer
 	// Get all customer funds
-	customerFunds, err := s.GetAllCustomerFunds(ctx)
+	customerFunds, err := s.GetAllCustomerDeposits(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve customer funds: %v", err)
 	}
@@ -39,8 +39,11 @@ func (s *SmartContract) TransferFunds(ctx contractapi.TransactionContextInterfac
 	txID := ctx.GetStub().GetTxID()
 
 	fundTransfer := FundTransferEntry{
-		Amount:    amount,
-		Timestamp: timestamp.AsTime().UnixMicro(),
+		Amount:          amount,
+		CustomerAddress: customerAddress,
+		DocType:         "T",
+		MerchantAddress: merchantAddress,
+		Timestamp:       timestamp.AsTime().UnixMicro(),
 	}
 
 	fundTransferJSON, err := json.Marshal(fundTransfer)
@@ -48,18 +51,18 @@ func (s *SmartContract) TransferFunds(ctx contractapi.TransactionContextInterfac
 		return err
 	}
 
-	// Create a unique composite key: T~Date~MerchantAddress~CustomerAddress~TransactionID
-	date_txt := timestamp.AsTime().Format("20060102")
-	compositeKey, err := ctx.GetStub().CreateCompositeKey("T", []string{date_txt, merchantAddress, customerAddress, txID})
-	if err != nil {
-		return fmt.Errorf("failed to create composite key: %v", err)
-	}
-
-	return ctx.GetStub().PutState(compositeKey, fundTransferJSON)
+	// Store all fields under transaction id
+	return ctx.GetStub().PutState(txID, fundTransferJSON)
 }
 
 func (s *SmartContract) GetAllCustomerTransfers(ctx contractapi.TransactionContextInterface) ([]FundTransferResponse, error) {
-	iterator, err := ctx.GetStub().GetStateByPartialCompositeKey("T", []string{})
+	query := `{
+		"selector": {
+			"docType": "T"
+		}
+	}`
+
+	iterator, err := ctx.GetStub().GetQueryResult(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read customer transfers: %v", err)
 	}
@@ -80,18 +83,12 @@ func (s *SmartContract) GetAllCustomerTransfers(ctx contractapi.TransactionConte
 			return nil, fmt.Errorf("failed to decode customer transfer record: %v", err)
 		}
 
-		// Decode composite key
-		_, attributes, err := ctx.GetStub().SplitCompositeKey(response.Key)
-		if err != nil {
-			return nil, fmt.Errorf("failed to split composite key: %v", err)
-		}
-
 		var fundTransferResponse FundTransferResponse
+		fundTransferResponse.TransactionID = response.Key
 		fundTransferResponse.Amount = transfer.Amount
-		fundTransferResponse.CustomerAddress = attributes[2]
-		fundTransferResponse.MerchantAddress = attributes[1]
+		fundTransferResponse.CustomerAddress = transfer.CustomerAddress
+		fundTransferResponse.MerchantAddress = transfer.MerchantAddress
 		fundTransferResponse.Timestamp = transfer.Timestamp
-		fundTransferResponse.TransactionID = attributes[3]
 		results = append(results, fundTransferResponse)
 	}
 

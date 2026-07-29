@@ -21,8 +21,10 @@ func (s *SmartContract) DepositFunds(ctx contractapi.TransactionContextInterface
 	txID := ctx.GetStub().GetTxID()
 
 	fundDeposit := FundDepositEntry{
-		Amount:    amount,
-		Timestamp: timestamp.AsTime().UnixMicro(),
+		Amount:          amount,
+		CustomerAddress: customerAddress,
+		DocType:         "D",
+		Timestamp:       timestamp.AsTime().UnixMicro(),
 	}
 
 	fundDepositJSON, err := json.Marshal(fundDeposit)
@@ -30,20 +32,21 @@ func (s *SmartContract) DepositFunds(ctx contractapi.TransactionContextInterface
 		return err
 	}
 
-	// Create a unique composite key: F~CustomerAddress~TransactionID
-	compositeKey, err := ctx.GetStub().CreateCompositeKey("F", []string{customerAddress, txID})
-	if err != nil {
-		return fmt.Errorf("failed to create composite key: %v", err)
-	}
-
-	return ctx.GetStub().PutState(compositeKey, fundDepositJSON)
+	// Store all fields under transaction id
+	return ctx.GetStub().PutState(txID, fundDepositJSON)
 }
 
-// GetAllCustomerFunds retrieves all customer funds from the ledger
-func (s *SmartContract) GetAllCustomerFunds(ctx contractapi.TransactionContextInterface) ([]FundDepositResponse, error) {
-	iterator, err := ctx.GetStub().GetStateByPartialCompositeKey("F", []string{})
+// GetAllCustomerFunds retrieves all customer deposits from the ledger
+func (s *SmartContract) GetAllCustomerDeposits(ctx contractapi.TransactionContextInterface) ([]FundDepositResponse, error) {
+	query := `{
+		"selector": {
+			"docType": "D"
+		}
+	}`
+
+	iterator, err := ctx.GetStub().GetQueryResult(query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read customer funds: %v", err)
+		return nil, fmt.Errorf("failed to read customer deposits: %v", err)
 	}
 	defer iterator.Close()
 
@@ -62,16 +65,10 @@ func (s *SmartContract) GetAllCustomerFunds(ctx contractapi.TransactionContextIn
 			return nil, fmt.Errorf("failed to decode customer fund record: %v", err)
 		}
 
-		// Decode composite key
-		_, attributes, err := ctx.GetStub().SplitCompositeKey(response.Key)
-		if err != nil {
-			return nil, fmt.Errorf("failed to split composite key: %v", err)
-		}
-
 		var fundDepositResponse FundDepositResponse
 		fundDepositResponse.Amount = fund.Amount
-		fundDepositResponse.CustomerAddress = attributes[0]
-		fundDepositResponse.TransactionID = attributes[1]
+		fundDepositResponse.CustomerAddress = fund.CustomerAddress
+		fundDepositResponse.TransactionID = response.Key
 		fundDepositResponse.Timestamp = fund.Timestamp
 		results = append(results, fundDepositResponse)
 	}
