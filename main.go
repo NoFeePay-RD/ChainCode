@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	assetChaincode, err := contractapi.NewChaincode(&chaincode.SmartContract{})
+	assetChaincode, err := contractapi.NewChaincode(&chaincode.Contract{})
 	if err != nil {
 		log.Panicf("Error creating chaincode: %v", err)
 	}
